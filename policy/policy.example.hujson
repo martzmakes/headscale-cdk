@@ -1,0 +1,35 @@
+// Headscale policy (policy.mode: database). Apply with: ./scripts/policy.sh <stack> <file>
+// OIDC users are referenced by email. Copy to policy.local.hujson (gitignored) and edit.
+{
+  "groups": {
+    "group:admin": ["you@example.com"],
+  },
+
+  "tagOwners": {
+    "tag:router": ["group:admin"],
+  },
+
+  // Single-person tailnet: every device may reach every other device.
+  // Tighten here if you add people (e.g. "src": ["group:family"], "dst": ["tag:router:53"]).
+  "acls": [
+    { "action": "accept", "src": ["*"], "dst": ["*:*"] },
+  ],
+
+  // Re-registering the NAS (new state dir, reinstall) no longer needs a manual route approval.
+  "autoApprovers": {
+    "routes": {
+      "192.168.1.0/24": ["group:admin"],
+    },
+    "exitNode": ["group:admin"],
+  },
+
+  // Tailscale SSH between your own devices (nodes opt in with `tailscale set --ssh`).
+  "ssh": [
+    {
+      "action": "accept",
+      "src": ["autogroup:member"],
+      "dst": ["autogroup:self"],
+      "users": ["autogroup:nonroot", "root"],
+    },
+  ],
+}

@@ -1,0 +1,15 @@
+{
+  "hostedZoneName": "example.com",
+  "recordName": "hs.example.com",
+  "allowedUsers": ["you@example.com"],
+  "cognitoDomainPrefix": "example-headscale",
+  "bundleId": "micro_3_0",
+  "sshCidrs": ["203.0.113.10/32"],
+  "allowLightsailConnect": true,
+  "magicDnsBaseDomain": "tailnet.internal",
+  "nameservers": ["1.1.1.1", "1.0.0.1"],
+  "snapshotTimeOfDay": "07:00",
+  "mfa": "required",
+  "disableApiKeyLogin": true,
+  "alertEmail": "you@example.com"
+}

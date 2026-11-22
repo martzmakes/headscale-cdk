@@ -1,0 +1,50 @@
+# Headplane {{HEADPLANE_VERSION}} config, rendered by CDK into /opt/headscale/headplane/config.yaml.
+# Based on https://github.com/tale/headplane/blob/{{HEADPLANE_VERSION}}/config.example.yaml
+# All secrets are read from files (`*_path` keys) under /run/secrets, so this file holds none.
+
+server:
+  host: "0.0.0.0"
+  port: 3000
+  # Public URL WITHOUT the /admin prefix. In 0.8.x this also drives the OIDC
+  # redirect URI (<base_url>/admin/oidc/callback); oidc.redirect_uri is deprecated.
+  base_url: "https://{{DOMAIN}}"
+  # 32 chars, generated on the box at first boot (openssl rand -hex 16).
+  cookie_secret_path: "/run/secrets/headplane_cookie_secret"
+  cookie_secure: true
+  cookie_max_age: 86400
+  data_path: "/var/lib/headplane"
+
+headscale:
+  url: "http://headscale:8080"
+  public_url: "https://{{DOMAIN}}"
+  config_path: "/etc/headscale/config.yaml"
+  # NOTE: declared in the 0.8.2 schema but not read anywhere in the code (vestigial).
+  config_strict: true
+  # Required for OIDC. Created by hs-bootstrap.sh via `headscale apikeys create --expiration 999d`.
+  # (0.8.x replacement for the deprecated oidc.headscale_api_key.)
+  api_key_path: "/run/secrets/headscale_api_key"
+
+integration:
+  agent:
+    enabled: false
+  docker:
+    enabled: true
+    container_label: "me.tale.headplane.target=headscale"
+    socket: "unix:///var/run/docker.sock"
+  # kubernetes/proc omitted on purpose: in 0.8.2 a present-but-disabled kubernetes
+  # block still fails validation ("integration.kubernetes.pod_name must be a string").
+
+oidc:
+  enabled: true
+  issuer: "{{OIDC_ISSUER}}"
+  client_id: "{{OIDC_CLIENT_ID}}"
+  client_secret_path: "/run/secrets/oidc_client_secret"
+  # Cognito's discovery doc advertises client_secret_basic and client_secret_post;
+  # pin basic (Cognito's documented default for confidential clients).
+  token_endpoint_auth_method: "client_secret_basic"
+  use_pkce: true
+  scope: "openid email profile"
+  # First OIDC login becomes Owner; later users get "member" (no UI access) until promoted.
+  default_role: "member"
+  profile_picture_source: "gravatar"
+  disable_api_key_login: {{DISABLE_API_KEY_LOGIN}}

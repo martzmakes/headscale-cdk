@@ -1,0 +1,70 @@
+# Rendered by CDK into /opt/headscale/docker-compose.yaml.
+# Double-brace placeholders are filled at synth time; nothing in this file is secret.
+name: headscale
+
+networks:
+  edge:
+    ipam:
+      config:
+        # Fixed so Headscale's trusted_proxies can name Caddy's network exactly.
+        - subnet: 10.250.0.0/24
+
+volumes:
+  caddy-data: {}
+  caddy-config: {}
+
+services:
+  caddy:
+    image: {{CADDY_IMAGE}}
+    container_name: caddy
+    restart: unless-stopped
+    networks: [edge]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: {{DOMAIN}}
+    volumes:
+      - /opt/headscale/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # ACME account + certificates
+      - caddy-config:/config
+
+  headscale:
+    image: {{HEADSCALE_IMAGE}}
+    container_name: headscale
+    restart: unless-stopped
+    command: serve
+    networks: [edge]
+    labels:
+      # Headplane's Docker integration finds the container to restart by this label.
+      me.tale.headplane.target: headscale
+    ports:
+      - "3478:3478/udp" # embedded DERP STUN
+    volumes:
+      # Read-write: Headplane edits this file (DNS, etc.) and then restarts Headscale.
+      - /opt/headscale/config:/etc/headscale
+      - /var/lib/headscale:/var/lib/headscale
+      - /opt/headscale/secrets:/run/secrets:ro
+    healthcheck:
+      # Image is distroless; the CLI talks to the local unix socket.
+      test: ["CMD", "/ko-app/headscale", "health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  headplane:
+    image: {{HEADPLANE_IMAGE}}
+    container_name: headplane
+    restart: unless-stopped
+    networks: [edge]
+    depends_on:
+      headscale:
+        condition: service_healthy
+    volumes:
+      - /opt/headscale/headplane/config.yaml:/etc/headplane/config.yaml:ro
+      - /var/lib/headplane:/var/lib/headplane
+      # Same in-container path as Headscale's mount, matching headscale.config_path.
+      - /opt/headscale/config:/etc/headscale
+      - /opt/headscale/secrets:/run/secrets:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro

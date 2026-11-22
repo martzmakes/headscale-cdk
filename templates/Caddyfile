@@ -1,0 +1,40 @@
+# Rendered by CDK into /opt/headscale/Caddyfile. {$DOMAIN} is read from the container env.
+{
+	servers {
+		# UDP 443 is not opened in the Lightsail firewall, so don't advertise HTTP/3.
+		protocols h1 h2
+	}
+}
+
+# Plain HTTP: ACME HTTP-01 challenges are answered automatically by Caddy before
+# these handlers run. Everything else is redirected to HTTPS.
+http://{$DOMAIN} {
+	# Tailscale captive-portal detection (per Headscale's reverse-proxy docs)
+	handle /generate_204 {
+		respond 204
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
+{$DOMAIN} {
+	# Bare root -> admin UI. Tailscale clients never request "/".
+	@root path /
+	redir @root /admin/ 302
+
+	# Headplane serves itself under the /admin prefix, so no path stripping.
+	handle /admin* {
+		reverse_proxy headplane:3000
+	}
+
+	# Everything else is Headscale: /ts2021 (Noise, HTTP Upgrade), /derp (DERP
+	# Upgrade), /key, /oidc/*, /register/*, /verify, /health, ...
+	# Caddy's reverse_proxy passes HTTP/1.1 Upgrade + WebSocket through natively.
+	handle {
+		reverse_proxy headscale:8080 {
+			header_up True-Client-IP {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Start Headscale stack once the OIDC client secret is present
+
+[Path]
+PathExists=/opt/headscale/secrets/oidc_client_secret
+PathChanged=/opt/headscale/secrets/oidc_client_secret
+Unit=hs-bootstrap.service
+
+[Install]
+WantedBy=multi-user.target

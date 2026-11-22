@@ -1,0 +1,9 @@
+[Unit]
+Description=Bootstrap Headscale + Headplane (API key, DERP IP, start containers)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/headscale/bin/hs-bootstrap.sh

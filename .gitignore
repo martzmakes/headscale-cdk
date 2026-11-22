@@ -1,0 +1,12 @@
+node_modules/
+cdk.out/
+*.js
+!jest.config.js
+*.d.ts
+cdk.context.json
+# never commit secrets or temporary SSH material
+*.pem
+*-cert.pub
+.secrets/
+config.local.json
+policy.local.hujson*
