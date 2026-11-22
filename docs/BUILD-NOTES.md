@@ -186,3 +186,25 @@ holds no secrets.
   (`HealthCheckStatus` Minimum < 1 for 3 min, missing data = breaching) -> SNS email, alarm *and* OK
   actions. ~$0.60/mo. 16/16 checkers green on first look. In-place deploy, no instance change.
   Why it matters: a dead control plane is silent, since existing WireGuard tunnels keep working.
+
+## Backup Pi-hole on the Lightsail box (2026-11-22, late)
+
+- **Why:** with `override_local_dns: true` and one home Pi-hole, a home power or ISP outage
+  means my phone in Vegas has *no DNS at all* until I notice and toggle Tailscale off.
+- **How (in place, no replacement):** the box joins its own tailnet as `cloud-dns` (100.64.0.6) via a
+  host-network `tailscale` container. A `pihole/pihole:2026.10.1` container (the same Core 6.5 / FTL 6.8 as
+  the NAS) binds only `127.0.0.1` and `100.64.0.6` (`listeningMode: NONE` + `listen-address` +
+  `bind-dynamic`). systemd-resolved keeps 127.0.0.53/54, so there's no port-53 fight. UDP 53 is not in the
+  Lightsail firewall, and `dig @<static IP>` from the internet times out.
+- **Same lists:** I streamed a Teleporter export NAS → mini → box over SSH pipes (never written to the
+  mini's disk), ran `pihole-FTL --teleporter <zip>`, then `pihole -g`: 453,084 unique domains. The FTLCONF_
+  environment variables win over imported `pihole.toml` values, so the import couldn't widen listening.
+- **Memory:** ~510 MB used of 909 MB with five containers. It still fits the $7 bundle.
+- **Failover drill:** testing "is the backup used?" needs a client that accepts tailnet DNS. Doing that on
+  the mini risked breaking its system DNS, so I ran a throwaway **ephemeral userspace client in a container on the
+  box** (`TS_ACCEPT_DNS=true`, `TS_STATE_DIR=mem:`). Baseline answers came through the normal path. Then I
+  stopped Tailscale on the NAS: `doubleclick.net -> 0.0.0.0`, `example.com` and `github.com` resolved, each in ~92 ms.
+  The NAS was back after 11 s.
+- **Gotcha:** after the NAS restarted it came back on a new random UDP port. The iPhone, Air and work
+  laptop re-established direct paths immediately, but the mini (userspace) kept the stale endpoint for
+  ~2 minutes until the NAS pinged it.

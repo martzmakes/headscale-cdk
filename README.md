@@ -193,7 +193,7 @@ Inbound tailnet connections reach local services. Outbound tailnet traffic needs
    - **Tighter (what I run):** `FTLCONF_dns_listeningMode: NONE` plus
      `FTLCONF_misc_dnsmasq_lines: "listen-address=127.0.0.1,<LAN IP>,<tailnet IP>;bind-dynamic"`.
      It binds only those addresses. `bind-dynamic`, not `bind-interfaces`, so Pi-hole still starts before `tailscale0` exists.
-4. `override_local_dns: true` (already set) makes clients use it on any network.
+4. `override_local_dns: true` (already set) makes clients use it on any network. The catch: if that Pi-hole is at home and home goes dark, remote devices lose **all** DNS. [extras/backup-pihole](extras/backup-pihole/README.md) adds a tailnet-only backup Pi-hole on the Lightsail box as a second nameserver.
 
 Why not just use Pi-hole's LAN IP through the subnet route? Subnet-routed traffic is masqueraded, so Pi-hole would log every remote query as coming from the router. It also breaks on networks that reuse your LAN range.
 
