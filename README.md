@@ -16,6 +16,8 @@ A self-hosted Tailscale control plane for about **$7.50 a month**, as one AWS CD
                          Cognito (managed login, TOTP MFA) ◀── OIDC (code + PKCE) ── Headscale & Headplane
 ```
 
+![Architecture: phone and NAS keep a control connection to Headscale on Lightsail and sign in through Cognito; traffic flows directly over WireGuard, falling back to the embedded DERP relay](docs/images/architecture.png)
+
 Background for each decision, and everything that broke on the first real deploy, is in [docs/BUILD-NOTES.md](docs/BUILD-NOTES.md).
 
 > Built for one person's home lab and running in production for exactly that. It's a working reference, not a managed product: read the scripts before you run them.
